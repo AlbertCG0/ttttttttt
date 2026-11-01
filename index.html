@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <title>Bird Village : Kuşçu Oyunu - Kuş Köyü, Mezat & Takla Simülatörü</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Notification Toast -->
+    <div id="notification-toast" class="notification-toast"></div>
+
+    <!-- Mobile Floating Drawer Toggle Button -->
+    <button id="btn-drawer-toggle" class="mobile-drawer-toggle glass" title="Kümesteki Kuşlar">
+        <span>🏠</span> Kuşlar (<span id="drawer-count">3</span>)
+    </button>
+
+    <!-- Top HUD -->
+    <header class="top-hud">
+        <div class="hud-title-card glass">
+            <button id="btn-mobile-menu" class="mobile-menu-btn" title="Hızlı Menü">☰<span class="menu-pip"></span></button>
+            <div>
+                <h1>🕊️ BİRD VİLLAGE</h1>
+                <span>Kuşçu Köyü, Mezat & Borsa</span>
+            </div>
+        </div>
+
+        <div class="hud-stats-group">
+            <div class="stat-chip glass">
+                <span class="icon">🪙</span>
+                <div>
+                    <span style="font-size: 0.7rem; color: #94a3b8; display: block;">Altın</span>
+                    <span class="val" id="hud-coins">550</span>
+                </div>
+            </div>
+            <div class="stat-chip glass">
+                <span class="icon">🏆</span>
+                <div>
+                    <span style="font-size: 0.7rem; color: #94a3b8; display: block;">Skor</span>
+                    <span class="val" id="hud-score">0</span>
+                </div>
+            </div>
+            <div class="stat-chip glass">
+                <span class="icon">🏰</span>
+                <div>
+                    <span style="font-size: 0.7rem; color: #94a3b8; display: block;">Kümes</span>
+                    <span class="val" id="hud-capacity">3 / 6</span>
+                </div>
+            </div>
+            <div class="stat-chip glass">
+                <span class="icon">☁️</span>
+                <div>
+                    <span style="font-size: 0.7rem; color: #94a3b8; display: block;">Havada</span>
+                    <span class="val" id="hud-flying">0</span>
+                </div>
+            </div>
+            <div class="stat-chip glass">
+                <span class="icon">🌤️</span>
+                <div>
+                    <span style="font-size: 0.7rem; color: #94a3b8; display: block;">Hava</span>
+                    <span class="val" id="hud-weather">☀️ Güneşli</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Side Panel: Flock Roster (Collapsible Drawer on Mobile) -->
+    <aside id="side-panel" class="side-panel glass">
+        <div class="panel-header">
+            <span>🏠 Kümesteki Kuşlar</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button id="btn-sound" style="background: none; border: none; color: #fbbf24; cursor: pointer; font-size: 0.85rem;">🔊 Ses</button>
+                <button id="btn-drawer-close" class="drawer-close-btn">&times;</button>
+            </div>
+        </div>
+        <div class="flock-scroll" id="flock-items">
+            <!-- Dynamic Pigeon Rows -->
+        </div>
+        <div style="font-size: 0.72rem; color: #94a3b8; text-align: center; margin-top: 4px; line-height: 1.35;">
+            💡 <strong>Köy & Uçuş Rehberi:</strong><br>
+            • <strong>[Space]</strong> veya <strong>TAKLA</strong> ile fişekle & takla attır!<br>
+            • [M] ile <strong>Mezat</strong>, [B] ile <strong>Borsa</strong> grafiğini takip et!<br>
+            • Köy Değirmeni her 15 sn otomatik yem ve altın kazandırır.
+        </div>
+    </aside>
+
+    <!-- Top Management Quick-Dock -->
+    <nav class="top-quick-dock glass">
+        <button id="btn-comp" class="quick-btn accent" title="Büyük Takla Turnuvaları (T)">
+            <span>🏆</span> Turnuva [T]
+        </button>
+        <button id="btn-market" class="quick-btn accent" title="Güvercin Borsası & Canlı Fiyatlar">
+            <span>📈</span> Borsa
+        </button>
+        <button id="btn-wheel" class="quick-btn accent" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(245, 158, 11, 0.3)); border-color: #ef4444;" title="Günün Kuşçu Şans Çarkı">
+            <span>🎡</span> Şans Çarkı
+        </button>
+        <button id="btn-mezat" class="quick-btn accent" title="Canlı Kuş Mezatı (M)">
+            <span>🏛️</span> Mezat [M]
+        </button>
+        <button id="btn-train" class="quick-btn" title="Güvercin Talimgahı & Fişek Talimi (E)">
+            <span>🏋️</span> Talim [E]
+        </button>
+        <button id="btn-vet" class="quick-btn" title="Köy Veterineri & Vitamin Deposu (V)">
+            <span>🏥</span> Veteriner [V]
+        </button>
+        <button id="btn-quest" class="quick-btn" title="Kuşçunun Günlük Görevleri (Q)">
+            <span>🎖️</span> Görevler [Q]
+        </button>
+        <button id="btn-breed" class="quick-btn" title="Kuluçkaya yatır ve yavru üret (K)">
+            <span>🥚</span> Kuluçka [K]
+        </button>
+        <button id="btn-defter" class="quick-btn" title="Kuş Defteri ve Damızlık Soy Ağacı">
+            <span>📖</span> Defter
+        </button>
+        <button id="btn-shop" class="quick-btn" title="Kuş Pazarı ve Köy İnşaatı">
+            <span>🏪</span> Pazar & Köy
+        </button>
+        <button id="btn-clean" class="quick-btn" title="Kümesi süpür ve dezenfekte et">
+            <span>🧹</span> Temizle
+        </button>
+        <button id="btn-camera" class="quick-btn" title="Kamera açısını değiştir (C)">
+            <span>🎥</span> Teras [C]
+        </button>
+        <button id="btn-time" class="quick-btn" title="Gündüz / Gece Değiştir">
+            <span>☀️</span> Gündüz
+        </button>
+    </nav>
+
+    <!-- Dynamic Takla & Rhythm Helper Banner -->
+    <div id="rhythm-banner" class="rhythm-banner glass">
+        <span>⚡</span> <span id="rhythm-text">[Space] ile Havada Fişekle & Zirvede Seri Takla At!</span>
+    </div>
+
+    <!-- Hero Flight Controls (Bottom Center) -->
+    <nav class="hero-controls glass">
+        <button id="btn-launch" class="hero-btn primary" title="Kuşları havalandır (U)">
+            <span>🕊️</span> Uçur! [U]
+        </button>
+        <button id="btn-takla" class="hero-btn hero-takla" title="Havada dikine fişekle ve takla attır (Space)">
+            <span>⚡</span> TAKLA AT! [Space]
+        </button>
+        <button id="btn-whistle" class="hero-btn" title="Islık çal ve kuşları çatıya çağır (F)">
+            <span>📢</span> Islık [F]
+        </button>
+        <button id="btn-feed" class="hero-btn" title="Yem serp ve besle (Y)">
+            <span>🌾</span> Yem [Y]
+        </button>
+        <button id="btn-stray" class="hero-btn" style="background: linear-gradient(135deg, #a855f7, #7c3aed); border-color:#d8b4fe;" title="Pırıltı ver ve kaçak kuşu çek (P)">
+            <span>✨</span> Pırıltı [P]
+        </button>
+    </nav>
+
+    <!-- Shop Modal -->
+    <div id="shop-modal" class="modal-overlay hidden">
+        <div class="modal-box glass">
+            <div class="modal-header">
+                <h3>🏪 Kuş Pazarı & Köy İnşaat Geliştirme</h3>
+                <button id="close-shop" class="close-btn">&times;</button>
+            </div>
+            <div class="shop-grid" id="shop-items">
+                <!-- Injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Market Exchange Modal -->
+    <div id="market-modal" class="modal-overlay hidden">
+        <div class="modal-box glass" style="width: 820px;">
+            <div class="modal-header">
+                <h3>📈 Güvercin Borsası & Canlı Fiyat Endeksi</h3>
+                <button id="close-market" class="close-btn">&times;</button>
+            </div>
+            <div id="market-content">
+                <!-- Injected dynamically by MarketExchangeManager -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Fortune Wheel Modal -->
+    <div id="wheel-modal" class="modal-overlay hidden">
+        <div class="modal-box glass" style="width: 520px; text-align:center;">
+            <div class="modal-header">
+                <h3>🎡 Günün Kuşçu Şans Çarkı</h3>
+                <button id="close-wheel" class="close-btn">&times;</button>
+            </div>
+            <div style="padding: 12px 0;">
+                <canvas id="wheel-canvas" width="320" height="320" style="display:inline-block; max-width:85vw; border-radius:50%; box-shadow:0 8px 30px rgba(0,0,0,0.6);"></canvas>
+            </div>
+            <div style="display:flex; justify-content:center; gap:12px;">
+                <button id="btn-spin-wheel" class="buy-btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); font-size:1.05rem; padding: 12px 32px;">
+                    🎯 Çarkı Çevir (-40 🪙)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Auction (Mezat) Modal -->
+    <div id="mezat-modal" class="modal-overlay hidden">
+        <div class="modal-box glass" style="width: 820px;">
+            <div class="modal-header">
+                <h3>🏛️ Geleneksel Canlı Kuş Mezatı</h3>
+                <button id="close-mezat" class="close-btn">&times;</button>
+            </div>
+            <div id="mezat-content">
+                <!-- Injected dynamically by MezatManager -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Competition / Tournament Modal -->
+    <div id="comp-modal" class="modal-overlay hidden">
+        <div class="modal-box glass" style="width: 820px;">
+            <div class="modal-header">
+                <h3>🏆 Büyük Güvercin & Takla Turnuvası</h3>
+                <button id="close-comp" class="close-btn">&times;</button>
+            </div>
+            <div id="comp-content">
+                <!-- Injected dynamically by CompetitionManager -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Modal -->
+    <div id="train-modal" class="modal-overlay hidden">
+        <div class="modal-box glass" style="width: 820px;">
+            <div class="modal-header">
+                <h3>🏋️ Güvercin Talimgahı & Fişek Talimi</h3>
+                <button id="close-train" class="close-btn">&times;</button>
+            </div>
+            <div id="train-content">
+                <!-- Injected dynamically by TrainingManager -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Vet Clinic Modal -->
+    <div id="vet-modal" class="modal-overlay hidden">
+        <div class="modal-box glass" style="width: 820px;">
+            <div class="modal-header">
+                <h3>🏥 Köy Veterineri & Vitamin Deposu</h3>
+                <button id="close-vet" class="close-btn">&times;</button>
+            </div>
+            <div id="vet-content">
+                <!-- Injected dynamically by VetManager -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Quests Modal -->
+    <div id="quest-modal" class="modal-overlay hidden">
+        <div class="modal-box glass" style="width: 780px;">
+            <div class="modal-header">
+                <h3>🎖️ Kuşçunun Günlük Görevleri</h3>
+                <button id="close-quest" class="close-btn">&times;</button>
+            </div>
+            <div id="quest-content">
+                <!-- Injected dynamically by QuestManager -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Kuş Defteri / Soy Ağacı Modal -->
+    <div id="defter-modal" class="modal-overlay hidden">
+        <div class="modal-box glass" style="width: 800px;">
+            <div class="modal-header">
+                <h3>📖 Kuş Defteri & Damızlık Soy Ağacı</h3>
+                <button id="close-defter" class="close-btn">&times;</button>
+            </div>
+            <div class="shop-grid" id="defter-items" style="max-height: 60vh;">
+                <!-- Injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Mobile Quick Camera Switcher Button -->
+    <button id="btn-floating-cam" class="floating-cam-btn glass" title="Kamera Değiştir (Teras / Kuş / Yürüyüş)">
+        <span>🎥</span> <span id="float-cam-text" style="font-size: 0.72rem; display:none;">Teras</span>
+    </button>
+
+    <!-- Dedicated Full-Featured Mobile Game Menu Modal -->
+    <div id="mobile-menu-modal" class="modal-overlay hidden">
+        <div class="mobile-menu-sheet glass">
+            <!-- Sheet Header / Player Profile Card -->
+            <div class="mobile-menu-header">
+                <div class="mobile-user-profile">
+                    <div class="profile-avatar">🕊️</div>
+                    <div class="profile-details">
+                        <div class="profile-title" id="mobile-rank-title">🎖️ Usta Kuşçu (Lv. 1)</div>
+                        <div class="profile-xp-bar">
+                            <div class="xp-fill" id="mobile-xp-fill" style="width: 20%;"></div>
+                        </div>
+                        <div class="profile-xp-text" id="mobile-xp-text">0 / 100 XP</div>
+                    </div>
+                </div>
+                <button id="close-mobile-menu" class="mobile-menu-close-btn">&times;</button>
+            </div>
+
+            <!-- Quick Settings Strip -->
+            <div class="mobile-quick-settings">
+                <button id="m-btn-camera" class="mobile-quick-btn" title="Kamera Modunu Değiştir">
+                    <span>🎥</span> <span id="mobile-cam-label">Teras</span>
+                </button>
+                <button id="m-btn-time" class="mobile-quick-btn" title="Gündüz / Gece Değiştir">
+                    <span>☀️</span> <span id="mobile-time-label">Gündüz</span>
+                </button>
+                <button id="m-btn-sound" class="mobile-quick-btn" title="Sesi Aç / Kapat">
+                    <span>🔊</span> <span id="mobile-sound-label">Ses</span>
+                </button>
+                <button id="m-btn-save" class="mobile-quick-btn" title="İlerlemeyi Kaydet">
+                    <span>💾</span> <span>Kaydet</span>
+                </button>
+            </div>
+
+            <!-- Resource Summary Row Inside Menu -->
+            <div class="mobile-stats-row">
+                <div class="m-stat-pill">
+                    <span class="m-stat-icon">🪙</span>
+                    <div>
+                        <span class="m-stat-label">Altın</span>
+                        <span class="m-stat-val" id="m-stat-coins">550</span>
+                    </div>
+                </div>
+                <div class="m-stat-pill">
+                    <span class="m-stat-icon">🏆</span>
+                    <div>
+                        <span class="m-stat-label">Takla Skoru</span>
+                        <span class="m-stat-val" id="m-stat-score">0</span>
+                    </div>
+                </div>
+                <div class="m-stat-pill">
+                    <span class="m-stat-icon">🏰</span>
+                    <div>
+                        <span class="m-stat-label">Kümes</span>
+                        <span class="m-stat-val" id="m-stat-capacity">3 / 6</span>
+                    </div>
+                </div>
+                <div class="m-stat-pill">
+                    <span class="m-stat-icon">☁️</span>
+                    <div>
+                        <span class="m-stat-label">Havada</span>
+                        <span class="m-stat-val" id="m-stat-flying">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Touch Game Grid (Big Interactive Arcade Cards) -->
+            <div class="mobile-game-grid">
+                <div class="m-game-card card-market" id="m-card-market">
+                    <div class="m-card-badge green">CANLI</div>
+                    <div class="m-card-icon">📈</div>
+                    <div class="m-card-name">Güvercin Borsası</div>
+                    <div class="m-card-desc">Fiyat endeksi & al-sat</div>
+                </div>
+
+                <div class="m-game-card card-wheel" id="m-card-wheel">
+                    <div class="m-card-badge gold">HEDİYE</div>
+                    <div class="m-card-icon">🎡</div>
+                    <div class="m-card-name">Şans Çarkı</div>
+                    <div class="m-card-desc">Günün talih çarkı</div>
+                </div>
+
+                <div class="m-game-card card-mezat" id="m-card-mezat">
+                    <div class="m-card-badge red">CANLI PEY</div>
+                    <div class="m-card-icon">🏛️</div>
+                    <div class="m-card-name">Kuş Mezatı</div>
+                    <div class="m-card-desc">Açık artırma & satış</div>
+                </div>
+
+                <div class="m-game-card card-comp" id="m-card-comp">
+                    <div class="m-card-badge gold">KUPA</div>
+                    <div class="m-card-icon">🏆</div>
+                    <div class="m-card-name">Takla Turnuvası</div>
+                    <div class="m-card-desc">Büyük şampiyona</div>
+                </div>
+
+                <div class="m-game-card" id="m-card-train">
+                    <div class="m-card-icon">🏋️</div>
+                    <div class="m-card-name">Talimgah</div>
+                    <div class="m-card-desc">Fişek & kondisyon eğitimi</div>
+                </div>
+
+                <div class="m-game-card" id="m-card-vet">
+                    <div class="m-card-icon">🏥</div>
+                    <div class="m-card-name">Veteriner</div>
+                    <div class="m-card-desc">Vitamin ve aşı dopingi</div>
+                </div>
+
+                <div class="m-game-card" id="m-card-quest">
+                    <div class="m-card-badge blue">GÖREV</div>
+                    <div class="m-card-icon">🎖️</div>
+                    <div class="m-card-name">Günlük Görevler</div>
+                    <div class="m-card-desc">Ödüllü görev listesi</div>
+                </div>
+
+                <div class="m-game-card" id="m-card-breed">
+                    <div class="m-card-icon">🥚</div>
+                    <div class="m-card-name">Kuluçka & Üretim</div>
+                    <div class="m-card-desc">Damızlık eşleme</div>
+                </div>
+
+                <div class="m-game-card" id="m-card-defter">
+                    <div class="m-card-icon">📖</div>
+                    <div class="m-card-name">Kuş Defteri</div>
+                    <div class="m-card-desc">Soy kütüğü & künyeler</div>
+                </div>
+
+                <div class="m-game-card" id="m-card-shop">
+                    <div class="m-card-icon">🏪</div>
+                    <div class="m-card-name">Pazar & Köy</div>
+                    <div class="m-card-desc">Yeni ırklar & binalar</div>
+                </div>
+
+                <div class="m-game-card" id="m-card-clean">
+                    <div class="m-card-icon">🧹</div>
+                    <div class="m-card-name">Kümes Temizliği</div>
+                    <div class="m-card-desc">Hijyen ve sağlık bonusu</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/confetti.js"></script>
+    <script src="js/pigeons.js"></script>
+    <script src="js/environment.js"></script>
+    <script src="js/village.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/joystick.js"></script>
+    <script src="js/market_exchange.js"></script>
+    <script src="js/fortune_wheel.js"></script>
+    <script src="js/passport.js"></script>
+    <script src="js/mezat.js"></script>
+    <script src="js/competition.js"></script>
+    <script src="js/training.js"></script>
+    <script src="js/stray.js"></script>
+    <script src="js/vet.js"></script>
+    <script src="js/quests.js"></script>
+    <script src="js/radar.js"></script>
+    <script src="js/save.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
